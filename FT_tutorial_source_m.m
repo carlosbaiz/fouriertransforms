@@ -26,10 +26,10 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
 
     
     properties (Access = private)
-        widthpix % Description
-        framespersec % Description
-        colorscalerange % Description
-        stopState % Description
+        widthpix % Pixel size of the FT plot
+        framespersec % Frames per second
+        colorscalerange % Grayscale axis for the FT Plot
+        stopState % Stop/Pause the program
     end
     
 
@@ -38,39 +38,26 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
 
         % Code that executes after component creation
         function startupFcn(app)
-            img = zeros(720);
-            img_gray = mat2gray(img,[0 1]);
-            app.widthpix=100;
-            app.colorscalerange=5;
-            
+        app.widthpix=100;
+        app.colorscalerange = 5;
+        
+            img_gray = zeros(720);
+
+            %initialize the plots
             imagesc(app.UIAxes, img_gray)
-            colormap(app.UIAxes,"gray")
-            
-            
-            app.UIAxes.XLim = [1 size(img,2)];
-            app.UIAxes.YLim = [1 size(img,1)];
-            colormap(app.UIAxes,flipud(bone));
-            h  = colorbar(app.UIAxes);
-            ylabel(h, 'Intensity (arb)', 'FontSize', 12);
+            colormap(app.UIAxes,'gray')
+                            %set the plot limits
+                app.UIAxes.XLim = [1 size(img_gray,2)];
+                app.UIAxes.YLim = [1 size(img_gray,1)];
+                
             box(app.UIAxes, "on")
-            
-            %set the plot limits
-            centerx=fix(size(img,2)/2);
-            centery=fix(size(img,1)/2);
-            
-            %subtract the mean before FT
-            
-            fftimg = abs(fft2(sum(img,3)-mean(mean(sum(img,3)))));
-            fftimg = fftimg./max(max(fftimg));
-            imagesc(app.UIAxes2, fftshift(fftimg))
-            app.UIAxes2.XLim = [centerx-app.widthpix centerx+app.widthpix];
-            app.UIAxes2.YLim = [centery-app.widthpix centery+app.widthpix];
-            app.UIAxes2.CLim = [0 1/app.colorscalerange];
-            colormap(app.UIAxes2,flipud(bone))
-            h = colorbar(app.UIAxes2);
-            ylabel(h, 'Intensity (arb)', 'FontSize', 12);
+            imagesc(app.UIAxes2, img_gray)
+            colormap(app.UIAxes,'gray')
+                            %set the plot limits
+                app.UIAxes2.XLim = [1 size(img_gray,2)];
+                app.UIAxes2.YLim = [1 size(img_gray,1)];
             box(app.UIAxes2, "on")
-            drawnow
+
             
             
         end
@@ -82,25 +69,36 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
             
             while(app.stopState)
                 
+                %capture the snapshot
                 img = snapshot(cam);
-                img_gray = rgb2gray(img);
                 
+                %convert the snapshot to grayscale by combining the
+                %channels
+                img_gray = rgb2gray(img);
+                maxpix = fix(min(size(img_gray))/2)-1;
+                imgcenter = fix(size(img_gray)/2);
+                
+                %make the image square
+                img_gray = img_gray(imgcenter(1)-maxpix:imgcenter(1)+maxpix,imgcenter(2)-maxpix:imgcenter(2)+maxpix);
                 
                 imagesc(app.UIAxes, img_gray)
                 colormap(app.UIAxes,'gray')
                 box(app.UIAxes, "on")
                 
-                app.UIAxes.XLim = [1 size(img,2)];
-                app.UIAxes.YLim = [1 size(img,1)];
+                %set the plot limits
+                app.UIAxes.XLim = [1 size(img_gray,2)];
+                app.UIAxes.YLim = [1 size(img_gray,1)];
                 
                 %set the plot limits
-                centerx=fix(size(img,2)/2);
-                centery=fix(size(img,1)/2);
+                centerx=fix(size(img_gray,2)/2);
+                centery=fix(size(img_gray,1)/2);
                 
                 %subtract the mean before FT
                 
+                tofftimg = sum(img,3);
+                tofftimg2 = tofftimg(imgcenter(1)-maxpix:imgcenter(1)+maxpix,imgcenter(2)-maxpix:imgcenter(2)+maxpix);
                 
-                fftimg = abs(fft2(sum(img,3)-mean(mean(sum(img,3)))));
+                fftimg = abs(fft2(tofftimg2-mean(mean(tofftimg2))));
                 fftimg = fftimg./max(max(fftimg));
                 imagesc(app.UIAxes2, fftshift(fftimg))
                 
@@ -274,7 +272,7 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
             app.UIAxes2.Box = 'on';
             app.UIAxes2.XTick = [];
             app.UIAxes2.YTick = [];
-            app.UIAxes2.Position = [499 68 475 385];
+            app.UIAxes2.Position = [524 68 412 385];
 
             % Create UIAxes
             app.UIAxes = uiaxes(app.Fourier_Transform);
@@ -285,7 +283,7 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
             app.UIAxes.Box = 'on';
             app.UIAxes.XTick = [];
             app.UIAxes.YTick = [];
-            app.UIAxes.Position = [7 68 475 385];
+            app.UIAxes.Position = [38 68 412 385];
 
             % Create Panel_2
             app.Panel_2 = uipanel(app.Fourier_Transform);
@@ -328,7 +326,7 @@ classdef FT_tutorial_source_m < matlab.apps.AppBase
     methods (Access = public)
 
         % Construct app
-        function app = FT_tutorial_source
+        function app = FT_tutorial_source_m
 
             % Create UIFigure and components
             createComponents(app)
